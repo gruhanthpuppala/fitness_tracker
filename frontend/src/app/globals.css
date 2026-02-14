@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary font-sans antialiased;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-surface rounded-card border border-border p-4;
+  }
+
+  .input-field {
+    @apply bg-bg-elevated border border-border rounded-input px-3 py-2.5
+      text-text-primary placeholder-text-muted
+      focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary
+      transition-colors duration-150;
+  }
+}

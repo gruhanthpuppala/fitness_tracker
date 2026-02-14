@@ -1,0 +1,343 @@
+{
+  "info": {
+    "name": "Fitness Tracker API",
+    "description": "Personal Fitness Tracker API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"user@example.com\", \"password\": \"Test@1234\", \"password_confirm\": \"Test@1234\"}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"user@example.com\", \"password\": \"Test@1234\"}"
+            }
+          }
+        },
+        {
+          "name": "Google Auth",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/google/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\": \"google-id-token\"}"
+            }
+          }
+        },
+        {
+          "name": "Token Refresh",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/token/refresh/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refresh\": \"refresh-token\"}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refresh\": \"refresh-token\"}"
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/verify-email/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\": \"verification-token\"}"
+            }
+          }
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/verify-email/resend/"
+          }
+        },
+        {
+          "name": "Password Reset",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/password-reset/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"user@example.com\"}"
+            }
+          }
+        },
+        {
+          "name": "Password Reset Confirm",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/password-reset/confirm/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\": \"reset-token\", \"password\": \"NewPass@123\", \"password_confirm\": \"NewPass@123\"}"
+            }
+          }
+        },
+        {
+          "name": "Password Change",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/auth/password-change/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"current_password\": \"Test@1234\", \"new_password\": \"NewPass@123\", \"new_password_confirm\": \"NewPass@123\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/me/" }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/users/me/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"John Doe\", \"age\": 25}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate Account",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/users/me/" }
+        }
+      ]
+    },
+    {
+      "name": "Onboarding",
+      "item": [
+        {
+          "name": "Submit Profile",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/onboarding/profile/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"John\", \"age\": 25, \"gender\": \"Male\", \"height_cm\": 175.0, \"avg_sitting_hours\": 8.0, \"diet_type\": \"Non-Vegetarian\"}"
+            }
+          }
+        },
+        {
+          "name": "Submit Targets",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/onboarding/targets/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"calorie_target\": 2000, \"protein_target\": 150, \"goal_weight\": 70.0, \"weight\": 75.0}"
+            }
+          }
+        },
+        {
+          "name": "Check Status",
+          "request": { "method": "GET", "url": "{{baseUrl}}/onboarding/status/" }
+        }
+      ]
+    },
+    {
+      "name": "Targets",
+      "item": [
+        {
+          "name": "Get Targets",
+          "request": { "method": "GET", "url": "{{baseUrl}}/targets/" }
+        },
+        {
+          "name": "Update Targets",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/targets/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"calorie_target\": 2200, \"protein_target\": 160, \"goal_weight\": 68.0}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Daily Logs",
+      "item": [
+        {
+          "name": "List Logs",
+          "request": { "method": "GET", "url": "{{baseUrl}}/logs/" }
+        },
+        {
+          "name": "Create Log",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/logs/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"date\": \"2026-02-14\", \"weight\": 75.0, \"calories\": 2000, \"protein\": 150, \"steps\": 10000, \"water\": 3.0, \"sleep\": 7.5, \"workout\": true, \"cardio\": false}"
+            }
+          }
+        },
+        {
+          "name": "Get Today's Log",
+          "request": { "method": "GET", "url": "{{baseUrl}}/logs/today/" }
+        },
+        {
+          "name": "Get Log by Date",
+          "request": { "method": "GET", "url": "{{baseUrl}}/logs/2026-02-14/" }
+        },
+        {
+          "name": "Update Log",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/logs/2026-02-14/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"date\": \"2026-02-14\", \"weight\": 74.5, \"calories\": 2100, \"protein\": 160, \"steps\": 12000, \"water\": 3.5, \"sleep\": 8.0, \"workout\": true, \"cardio\": true}"
+            }
+          }
+        },
+        {
+          "name": "Delete Log",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/logs/2026-02-14/" }
+        }
+      ]
+    },
+    {
+      "name": "Measurements",
+      "item": [
+        {
+          "name": "List Measurements",
+          "request": { "method": "GET", "url": "{{baseUrl}}/measurements/" }
+        },
+        {
+          "name": "Create Measurement",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/measurements/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"date\": \"2026-02-14\", \"neck\": 38.0, \"chest\": 100.0, \"shoulders\": 115.0, \"bicep\": 35.0, \"forearm\": 28.0, \"waist\": 82.0, \"hips\": 95.0, \"thigh\": 55.0}"
+            }
+          }
+        },
+        {
+          "name": "Get Latest",
+          "request": { "method": "GET", "url": "{{baseUrl}}/measurements/latest/" }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Summary",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/summary/" }
+        },
+        {
+          "name": "Weight Trends",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/trends/?days=7" }
+        },
+        {
+          "name": "Streaks",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/streaks/" }
+        },
+        {
+          "name": "Alerts",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/alerts/" }
+        },
+        {
+          "name": "Monthly Metrics",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/monthly/" }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": { "method": "GET", "url": "{{baseUrl}}/settings/" }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/settings/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"profile\": {\"name\": \"John\"}, \"targets\": {\"calorie_target\": 2200}}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
