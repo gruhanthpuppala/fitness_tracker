@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -10,6 +10,19 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: Record<string, unknown>) => void;
+          renderButton: (parent: HTMLElement, config: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
+
 export default function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
@@ -17,7 +30,80 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const googleInitialized = useRef(false);
+
+  const handleRedirect = (user: { is_email_verified?: boolean; is_onboarded?: boolean } | null) => {
+    if (!user?.is_email_verified) {
+      router.push("/verify-email");
+    } else if (!user?.is_onboarded) {
+      router.push("/setup");
+    } else {
+      router.push("/dashboard");
+    }
+  };
+
+  useEffect(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId === "placeholder" || googleInitialized.current) return;
+
+    const initGoogle = () => {
+      if (!window.google || !googleBtnRef.current) return;
+
+      googleInitialized.current = true;
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response: { credential: string }) => {
+          setGoogleLoading(true);
+          setApiError("");
+          try {
+            const user = await loginWithGoogle(response.credential);
+            handleRedirect(user);
+          } catch (err: unknown) {
+            const error = err as {
+              response?: { data?: { message?: string; errors?: { detail?: string } } };
+            };
+            setApiError(
+              error.response?.data?.message ||
+                error.response?.data?.errors?.detail ||
+                "Google sign-in failed. Please try again."
+            );
+          } finally {
+            setGoogleLoading(false);
+          }
+        },
+        use_fedcm_for_prompt: false,
+      });
+
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: "standard",
+        theme: "filled_black",
+        size: "large",
+        width: googleBtnRef.current.offsetWidth,
+        text: "continue_with",
+      });
+    };
+
+    if (window.google) {
+      initGoogle();
+    } else {
+      const checkInterval = setInterval(() => {
+        if (window.google) {
+          clearInterval(checkInterval);
+          initGoogle();
+        }
+      }, 200);
+      const timeout = setTimeout(() => clearInterval(checkInterval), 5000);
+      return () => {
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,13 +123,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await login(email, password);
-      if (!user?.is_email_verified) {
-        router.push("/verify-email");
-      } else if (!user?.is_onboarded) {
-        router.push("/setup");
-      } else {
-        router.push("/dashboard");
-      }
+      handleRedirect(user);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { errors?: { detail?: string[] } } } };
       setApiError(
@@ -52,12 +132,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    // Google OAuth would open popup and return token
-    // For now, placeholder for Google Sign-In integration
-    setApiError("Google Sign-In requires client-side SDK setup.");
   };
 
   return (
@@ -117,9 +191,11 @@ export default function LoginPage() {
             <div className="flex-1 border-t border-border" />
           </div>
 
-          <Button variant="secondary" className="w-full" onClick={handleGoogleLogin}>
-            Continue with Google
-          </Button>
+          {/* Google Sign-In button rendered by Google SDK */}
+          <div ref={googleBtnRef} className="w-full flex justify-center" />
+          {googleLoading && (
+            <p className="text-center text-sm text-text-secondary mt-2">Signing in with Google...</p>
+          )}
 
           <p className="text-center text-sm text-text-secondary mt-6">
             Don&apos;t have an account?{" "}

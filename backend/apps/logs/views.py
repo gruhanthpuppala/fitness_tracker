@@ -13,7 +13,11 @@ from .serializers import DailyLogSerializer
 
 
 class DailyLogListCreateView(OwnerQuerySetMixin, generics.ListCreateAPIView):
-    """List paginated daily logs or create a new one."""
+    """List paginated daily logs or create a new one.
+
+    POST behaves as upsert: if a log already exists for the given date,
+    it updates the existing log instead of returning an error.
+    """
 
     serializer_class = DailyLogSerializer
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
@@ -24,6 +28,17 @@ class DailyLogListCreateView(OwnerQuerySetMixin, generics.ListCreateAPIView):
         if self.request.method == "GET":
             return [ReadRateThrottle()]
         return [WriteRateThrottle()]
+
+    def create(self, request, *args, **kwargs):
+        date = request.data.get("date")
+        if date:
+            existing = self.get_queryset().filter(date=date).first()
+            if existing:
+                serializer = self.get_serializer(existing, data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
 
 
 class DailyLogDetailView(OwnerQuerySetMixin, generics.RetrieveUpdateDestroyAPIView):

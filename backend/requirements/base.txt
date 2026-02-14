@@ -8,3 +8,4 @@ django-filter>=23.5,<24.0
 django-jazzmin>=2.6,<3.0
 psycopg2-binary>=2.9,<3.0
 google-auth>=2.25,<3.0
+requests>=2.31,<3.0

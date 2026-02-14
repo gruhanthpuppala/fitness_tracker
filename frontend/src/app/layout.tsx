@@ -12,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-bg-primary">
         <ToastProvider>{children}</ToastProvider>
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
       </body>
     </html>
   );

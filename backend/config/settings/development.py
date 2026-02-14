@@ -26,3 +26,5 @@ except ImportError:
     pass
 
 INTERNAL_IPS = ["127.0.0.1"]
+
+GOOGLE_CLIENT_ID = "49852843328-gjlqmdkc5s6lku5sru9e2pbarbkfc9cr.apps.googleusercontent.com"

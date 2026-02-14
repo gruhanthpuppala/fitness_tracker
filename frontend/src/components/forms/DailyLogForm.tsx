@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { DailyLog, DailyLogFormData } from "@/types/log";
 import { isWithin7Days } from "@/lib/utils";
+import { dailyLogSchema } from "@/lib/validators";
 import Input from "@/components/ui/Input";
 import Toggle from "@/components/ui/Toggle";
 import Button from "@/components/ui/Button";
@@ -31,6 +32,7 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
   const [carbs, setCarbs] = useState("");
   const [fats, setFats] = useState("");
   const [fruit, setFruit] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const firstEmptyRef = useRef<HTMLInputElement>(null);
 
@@ -86,11 +88,12 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked) return;
+    setErrors({});
 
     const data: DailyLogFormData = {
-      weight: Number(weight),
-      calories: Number(calories),
-      protein: Number(protein),
+      weight: Number(weight) || 0,
+      calories: Number(calories) || 0,
+      protein: Number(protein) || 0,
       steps: Number(steps) || 0,
       water: Number(water) || 0,
       sleep: Number(sleep) || 0,
@@ -100,6 +103,16 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
       fats: fats ? Number(fats) : null,
       fruit,
     };
+
+    const result = dailyLogSchema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        fieldErrors[issue.path[0] as string] = issue.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
 
     await onSubmit(data);
   };
@@ -119,12 +132,12 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
       )}
 
       {/* Required fields */}
-      <Input ref={firstEmptyRef} label="Weight (kg)" type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} disabled={isLocked} />
-      <Input label="Calories (kcal)" type="number" value={calories} onChange={(e) => setCalories(e.target.value)} disabled={isLocked} />
-      <Input label="Protein (g)" type="number" value={protein} onChange={(e) => setProtein(e.target.value)} disabled={isLocked} />
-      <Input label="Steps" type="number" value={steps} onChange={(e) => setSteps(e.target.value)} disabled={isLocked} />
-      <Input label="Water (L)" type="number" step="0.5" value={water} onChange={(e) => setWater(e.target.value)} disabled={isLocked} />
-      <Input label="Sleep (hrs)" type="number" step="0.5" value={sleep} onChange={(e) => setSleep(e.target.value)} disabled={isLocked} />
+      <Input ref={firstEmptyRef} label="Weight (kg)" type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} error={errors.weight} disabled={isLocked} />
+      <Input label="Calories (kcal)" type="number" value={calories} onChange={(e) => setCalories(e.target.value)} error={errors.calories} disabled={isLocked} />
+      <Input label="Protein (g)" type="number" value={protein} onChange={(e) => setProtein(e.target.value)} error={errors.protein} disabled={isLocked} />
+      <Input label="Steps" type="number" value={steps} onChange={(e) => setSteps(e.target.value)} error={errors.steps} disabled={isLocked} />
+      <Input label="Water (L)" type="number" step="0.5" value={water} onChange={(e) => setWater(e.target.value)} error={errors.water} disabled={isLocked} />
+      <Input label="Sleep (hrs)" type="number" step="0.5" value={sleep} onChange={(e) => setSleep(e.target.value)} error={errors.sleep} disabled={isLocked} />
 
       <Toggle label="Workout" checked={workout} onChange={setWorkout} disabled={isLocked} />
       <Toggle label="Cardio" checked={cardio} onChange={setCardio} disabled={isLocked} />
