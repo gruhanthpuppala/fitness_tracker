@@ -19,6 +19,12 @@ export interface UserTarget {
   calorie_target: number;
   protein_target: number;
   goal_weight: number;
+  carbs_target: number | null;
+  fats_target: number | null;
+  fibre_target: number | null;
+  water_target: number | null;
+  sleep_target: number | null;
+  steps_target: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,11 +52,17 @@ export interface OnboardingProfile {
   height_cm: number;
   weight: number;
   avg_sitting_hours: number;
-  diet_type: "Vegetarian" | "Non-Vegetarian";
+  diet_type: "Vegetarian" | "Non-Vegetarian" | "Vegan" | "Eggetarian";
 }
 
 export interface OnboardingTargets {
   calorie_target: number;
   protein_target: number;
   goal_weight: number;
+  carbs_target?: number | null;
+  fats_target?: number | null;
+  fibre_target?: number | null;
+  water_target?: number | null;
+  sleep_target?: number | null;
+  steps_target?: number | null;
 }

@@ -28,10 +28,19 @@ export default function SetupPage() {
   const [sittingHours, setSittingHours] = useState("");
   const [dietType, setDietType] = useState("");
 
-  // Target fields
+  // Required target fields
   const [calorieTarget, setCalorieTarget] = useState("");
   const [proteinTarget, setProteinTarget] = useState("");
   const [goalWeight, setGoalWeight] = useState("");
+
+  // Optional target fields
+  const [carbsTarget, setCarbsTarget] = useState("");
+  const [fatsTarget, setFatsTarget] = useState("");
+  const [fibreTarget, setFibreTarget] = useState("");
+  const [waterTarget, setWaterTarget] = useState("");
+  const [sleepTarget, setSleepTarget] = useState("");
+  const [stepsTarget, setStepsTarget] = useState("");
+  const [showOptionalTargets, setShowOptionalTargets] = useState(false);
 
   // Review data
   const [bmi, setBmi] = useState<number | null>(null);
@@ -82,6 +91,12 @@ export default function SetupPage() {
       calorie_target: Number(calorieTarget),
       protein_target: Number(proteinTarget),
       goal_weight: Number(goalWeight),
+      carbs_target: carbsTarget ? Number(carbsTarget) : null,
+      fats_target: fatsTarget ? Number(fatsTarget) : null,
+      fibre_target: fibreTarget ? Number(fibreTarget) : null,
+      water_target: waterTarget ? Number(waterTarget) : null,
+      sleep_target: sleepTarget ? Number(sleepTarget) : null,
+      steps_target: stepsTarget ? Number(stepsTarget) : null,
     });
 
     if (!result.success) {
@@ -95,12 +110,20 @@ export default function SetupPage() {
 
     setLoading(true);
     try {
-      const res = await api.post("/onboarding/targets/", {
+      const payload: Record<string, unknown> = {
         calorie_target: Number(calorieTarget),
         protein_target: Number(proteinTarget),
         goal_weight: Number(goalWeight),
         weight: Number(weight),
-      });
+      };
+      if (carbsTarget) payload.carbs_target = Number(carbsTarget);
+      if (fatsTarget) payload.fats_target = Number(fatsTarget);
+      if (fibreTarget) payload.fibre_target = Number(fibreTarget);
+      if (waterTarget) payload.water_target = Number(waterTarget);
+      if (sleepTarget) payload.sleep_target = Number(sleepTarget);
+      if (stepsTarget) payload.steps_target = Number(stepsTarget);
+
+      const res = await api.post("/onboarding/targets/", payload);
       const data = res.data.data || res.data;
       setBmi(data.bmi);
       setBmiCategory(data.bmi_category);
@@ -121,6 +144,15 @@ export default function SetupPage() {
     center: { x: 0, opacity: 1 },
     exit: (direction: number) => ({ x: direction > 0 ? -300 : 300, opacity: 0 }),
   };
+
+  const optionalTargetRows = [
+    { label: "Carbs Target", value: carbsTarget, unit: "g" },
+    { label: "Fats Target", value: fatsTarget, unit: "g" },
+    { label: "Fibre Target", value: fibreTarget, unit: "g" },
+    { label: "Water Target", value: waterTarget, unit: "L" },
+    { label: "Sleep Target", value: sleepTarget, unit: "hrs" },
+    { label: "Steps Target", value: stepsTarget, unit: "" },
+  ].filter((r) => r.value);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
@@ -177,6 +209,8 @@ export default function SetupPage() {
                       <option value="">Select diet</option>
                       <option value="Vegetarian">Vegetarian</option>
                       <option value="Non-Vegetarian">Non-Vegetarian</option>
+                      <option value="Vegan">Vegan</option>
+                      <option value="Eggetarian">Eggetarian</option>
                     </select>
                     {errors.diet_type && <p className="mt-1 text-sm text-status-error">{errors.diet_type}</p>}
                   </div>
@@ -209,6 +243,26 @@ export default function SetupPage() {
                   <Input label="Daily Calorie Target (kcal)" type="number" value={calorieTarget} onChange={(e) => setCalorieTarget(e.target.value)} error={errors.calorie_target} autoFocus />
                   <Input label="Daily Protein Target (g)" type="number" value={proteinTarget} onChange={(e) => setProteinTarget(e.target.value)} error={errors.protein_target} />
                   <Input label="Goal Weight (kg)" type="number" value={goalWeight} onChange={(e) => setGoalWeight(e.target.value)} error={errors.goal_weight} />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionalTargets(!showOptionalTargets)}
+                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {showOptionalTargets ? "Hide optional targets" : "Set optional targets (carbs, fats, fibre, water, sleep, steps)"}
+                  </button>
+
+                  {showOptionalTargets && (
+                    <div className="space-y-4 pl-2 border-l-2 border-border">
+                      <Input label="Carbs Target (g)" type="number" value={carbsTarget} onChange={(e) => setCarbsTarget(e.target.value)} />
+                      <Input label="Fats Target (g)" type="number" value={fatsTarget} onChange={(e) => setFatsTarget(e.target.value)} />
+                      <Input label="Fibre Target (g)" type="number" value={fibreTarget} onChange={(e) => setFibreTarget(e.target.value)} />
+                      <Input label="Water Target (L)" type="number" step="0.1" value={waterTarget} onChange={(e) => setWaterTarget(e.target.value)} />
+                      <Input label="Sleep Target (hrs)" type="number" step="0.5" value={sleepTarget} onChange={(e) => setSleepTarget(e.target.value)} />
+                      <Input label="Steps Target" type="number" value={stepsTarget} onChange={(e) => setStepsTarget(e.target.value)} />
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
                     <Button variant="secondary" onClick={() => setStep(0)} className="flex-1">
                       Back
@@ -245,6 +299,17 @@ export default function SetupPage() {
                   <div className="flex justify-between"><span className="text-text-secondary">Calorie Target</span><span>{calorieTarget} kcal</span></div>
                   <div className="flex justify-between"><span className="text-text-secondary">Protein Target</span><span>{proteinTarget} g</span></div>
                   <div className="flex justify-between"><span className="text-text-secondary">Goal Weight</span><span>{goalWeight} kg</span></div>
+                  {optionalTargetRows.length > 0 && (
+                    <>
+                      <div className="border-t border-border my-3" />
+                      {optionalTargetRows.map((r) => (
+                        <div key={r.label} className="flex justify-between">
+                          <span className="text-text-secondary">{r.label}</span>
+                          <span>{r.value}{r.unit ? ` ${r.unit}` : ""}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                   <div className="border-t border-border my-3" />
                   <div className="flex justify-between font-medium">
                     <span className="text-text-secondary">BMI</span>

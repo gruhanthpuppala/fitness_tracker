@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Female - Normal</title>
+  <circle cx="100" cy="38" r="26"/>
+  <rect x="90" y="64" width="20" height="18" rx="4"/>
+  <path d="M74 82 L66 140 L62 195 L80 215 L100 222 L120 215 L138 195 L134 140 L126 82 Z"/>
+  <path d="M74 82 L52 178 L60 182 L78 100 Z"/>
+  <path d="M126 82 L148 178 L140 182 L122 100 Z"/>
+  <path d="M78 215 L74 350 L92 350 L100 222 Z"/>
+  <path d="M122 215 L126 350 L108 350 L100 222 Z"/>
+  <rect x="69" y="350" width="28" height="10" rx="5"/>
+  <rect x="103" y="350" width="28" height="10" rx="5"/>
+</svg>

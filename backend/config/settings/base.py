@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.logs",
     "apps.measurements",
     "apps.dashboard",
+    "apps.foods",
 ]
 
 MIDDLEWARE = [

@@ -38,6 +38,14 @@ services:
       postgres:
         condition: service_healthy
 
+  mailpit:
+    image: axllent/mailpit
+    container_name: fitness_tracker_mailpit
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP
+    restart: unless-stopped
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: fitness_tracker_pgadmin

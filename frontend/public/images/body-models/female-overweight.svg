@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Female - Overweight</title>
+  <circle cx="100" cy="38" r="28"/>
+  <rect x="88" y="66" width="24" height="16" rx="4"/>
+  <path d="M68 82 L56 140 L50 195 L76 225 L100 230 L124 225 L150 195 L144 140 L132 82 Z"/>
+  <path d="M68 82 L42 178 L52 184 L74 100 Z"/>
+  <path d="M132 82 L158 178 L148 184 L126 100 Z"/>
+  <path d="M76 225 L70 350 L92 350 L100 230 Z"/>
+  <path d="M124 225 L130 350 L108 350 L100 230 Z"/>
+  <rect x="65" y="350" width="32" height="10" rx="5"/>
+  <rect x="103" y="350" width="32" height="10" rx="5"/>
+</svg>

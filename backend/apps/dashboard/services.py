@@ -20,6 +20,9 @@ def get_dashboard_summary(user):
             "weight": float(log.weight),
             "calories": log.calories,
             "protein": log.protein,
+            "carbs": log.carbs,
+            "fats": log.fats,
+            "fibre": log.fibre,
             "steps": log.steps,
             "water": float(log.water),
             "sleep": float(log.sleep),
@@ -37,6 +40,12 @@ def get_dashboard_summary(user):
             "calorie_target": target.calorie_target,
             "protein_target": target.protein_target,
             "goal_weight": float(target.goal_weight),
+            "carbs_target": target.carbs_target,
+            "fats_target": target.fats_target,
+            "fibre_target": target.fibre_target,
+            "water_target": float(target.water_target) if target.water_target else None,
+            "sleep_target": float(target.sleep_target) if target.sleep_target else None,
+            "steps_target": target.steps_target,
         }
     except Exception:
         pass
@@ -103,6 +112,8 @@ def compute_streaks(user):
 
 def get_alerts(user):
     """Generate alerts for the user."""
+    from apps.logs.services import check_weekly_workout_variety
+
     today = timezone.now().date()
     alerts = []
 
@@ -125,6 +136,13 @@ def get_alerts(user):
     if no_workout_days >= 5:
         alerts.append(
             {"type": "warning", "message": f"No workouts in {no_workout_days} days"}
+        )
+
+    # Workout variety check
+    variety = check_weekly_workout_variety(user)
+    if not variety["meets_rule"]:
+        alerts.append(
+            {"type": "warning", "message": variety["message"]}
         )
 
     # No measurement in 30+ days
@@ -212,6 +230,56 @@ def compute_monthly_metrics(user, month_date):
         },
     )
     return metrics
+
+
+def get_weekly_review(user):
+    """Compute weekly summary for the last 7 days."""
+    today = timezone.now().date()
+    start_date = today - timedelta(days=6)  # last 7 days inclusive
+
+    logs = DailyLog.objects.filter(user=user, date__gte=start_date, date__lte=today)
+    log_list = list(logs)
+
+    if not log_list:
+        return {
+            "period": {"start": str(start_date), "end": str(today)},
+            "days_logged": 0,
+            "message": "No logs found for the past week.",
+        }
+
+    days_logged = len(log_list)
+    avg_calories = round(sum(l.calories for l in log_list) / days_logged)
+    avg_protein = round(sum(l.protein for l in log_list) / days_logged)
+    workouts_done = sum(1 for l in log_list if l.workout)
+
+    workout_types_used = list(set(
+        l.workout_type for l in log_list
+        if l.workout and l.workout_type
+    ))
+
+    # Weight change: first vs last logged weight
+    sorted_logs = sorted(log_list, key=lambda l: l.date)
+    weight_change = round(float(sorted_logs[-1].weight) - float(sorted_logs[0].weight), 1) if len(sorted_logs) >= 2 else None
+
+    # Consistency score (7-day version)
+    protein_hit_days = sum(1 for l in log_list if l.protein_hit)
+    consistency_score = round(
+        (days_logged / 7) * 40
+        + (protein_hit_days / days_logged) * 30
+        + (workouts_done / days_logged) * 30
+    )
+
+    return {
+        "period": {"start": str(start_date), "end": str(today)},
+        "days_logged": days_logged,
+        "avg_calories": avg_calories,
+        "avg_protein": avg_protein,
+        "workouts_done": workouts_done,
+        "workout_types_used": workout_types_used,
+        "weight_change": weight_change,
+        "consistency_score": min(consistency_score, 100),
+        "protein_hit_days": protein_hit_days,
+    }
 
 
 def refresh_if_stale(user):

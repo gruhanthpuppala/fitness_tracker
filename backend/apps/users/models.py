@@ -18,6 +18,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     class DietTypeChoices(models.TextChoices):
         VEGETARIAN = "Vegetarian", "Vegetarian"
         NON_VEGETARIAN = "Non-Vegetarian", "Non-Vegetarian"
+        VEGAN = "Vegan", "Vegan"
+        EGGETARIAN = "Eggetarian", "Eggetarian"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(max_length=255, unique=True)
@@ -129,6 +131,18 @@ class UserTarget(models.Model):
     goal_weight = models.DecimalField(
         max_digits=5, decimal_places=1, validators=[MinValueValidator(0.1)]
     )
+    carbs_target = models.PositiveIntegerField(null=True, blank=True)
+    fats_target = models.PositiveIntegerField(null=True, blank=True)
+    fibre_target = models.PositiveIntegerField(null=True, blank=True)
+    water_target = models.DecimalField(
+        max_digits=3, decimal_places=1, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    sleep_target = models.DecimalField(
+        max_digits=3, decimal_places=1, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    steps_target = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

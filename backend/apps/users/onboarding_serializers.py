@@ -11,7 +11,7 @@ class OnboardingProfileSerializer(serializers.Serializer):
     avg_sitting_hours = serializers.DecimalField(
         max_digits=3, decimal_places=1, min_value=Decimal("0")
     )
-    diet_type = serializers.ChoiceField(choices=["Vegetarian", "Non-Vegetarian"])
+    diet_type = serializers.ChoiceField(choices=["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"])
 
 
 class OnboardingTargetsSerializer(serializers.Serializer):
@@ -19,6 +19,16 @@ class OnboardingTargetsSerializer(serializers.Serializer):
     protein_target = serializers.IntegerField(min_value=1)
     goal_weight = serializers.DecimalField(max_digits=5, decimal_places=1, min_value=Decimal("0.1"))
     weight = serializers.DecimalField(max_digits=5, decimal_places=1, min_value=Decimal("0.1"))
+    carbs_target = serializers.IntegerField(min_value=0, required=False, allow_null=True)
+    fats_target = serializers.IntegerField(min_value=0, required=False, allow_null=True)
+    fibre_target = serializers.IntegerField(min_value=0, required=False, allow_null=True)
+    water_target = serializers.DecimalField(
+        max_digits=3, decimal_places=1, min_value=Decimal("0"), required=False, allow_null=True
+    )
+    sleep_target = serializers.DecimalField(
+        max_digits=3, decimal_places=1, min_value=Decimal("0"), required=False, allow_null=True
+    )
+    steps_target = serializers.IntegerField(min_value=0, required=False, allow_null=True)
 
 
 class OnboardingStatusSerializer(serializers.Serializer):

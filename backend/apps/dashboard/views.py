@@ -14,6 +14,7 @@ class DashboardSummaryView(generics.GenericAPIView):
 
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
     throttle_classes = [ReadRateThrottle]
+    swagger_schema = None
 
     def get(self, request):
         data = services.get_dashboard_summary(request.user)
@@ -25,6 +26,7 @@ class WeightTrendView(generics.GenericAPIView):
 
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
     throttle_classes = [ReadRateThrottle]
+    swagger_schema = None
 
     def get(self, request):
         days = int(request.query_params.get("days", 7))
@@ -39,6 +41,7 @@ class StreakView(generics.GenericAPIView):
 
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
     throttle_classes = [ReadRateThrottle]
+    swagger_schema = None
 
     def get(self, request):
         data = services.compute_streaks(request.user)
@@ -50,9 +53,22 @@ class AlertView(generics.GenericAPIView):
 
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
     throttle_classes = [ReadRateThrottle]
+    swagger_schema = None
 
     def get(self, request):
         data = services.get_alerts(request.user)
+        return Response(data)
+
+
+class WeeklyReviewView(generics.GenericAPIView):
+    """Weekly summary for the last 7 days."""
+
+    permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
+    throttle_classes = [ReadRateThrottle]
+    swagger_schema = None
+
+    def get(self, request):
+        data = services.get_weekly_review(request.user)
         return Response(data)
 
 
@@ -61,6 +77,7 @@ class MonthlyMetricsView(generics.GenericAPIView):
 
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
     throttle_classes = [ReadRateThrottle]
+    swagger_schema = None
 
     def get(self, request):
         services.refresh_if_stale(request.user)

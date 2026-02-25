@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Female - Obese</title>
+  <circle cx="100" cy="38" r="30"/>
+  <rect x="86" y="68" width="28" height="14" rx="4"/>
+  <path d="M62 82 L46 140 L38 195 L70 235 L100 242 L130 235 L162 195 L154 140 L138 82 Z"/>
+  <path d="M62 82 L32 178 L44 186 L68 100 Z"/>
+  <path d="M138 82 L168 178 L156 186 L132 100 Z"/>
+  <path d="M70 235 L64 350 L90 350 L100 242 Z"/>
+  <path d="M130 235 L136 350 L110 350 L100 242 Z"/>
+  <rect x="58" y="350" width="36" height="12" rx="6"/>
+  <rect x="106" y="350" width="36" height="12" rx="6"/>
+</svg>

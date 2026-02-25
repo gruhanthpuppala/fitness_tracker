@@ -4,14 +4,17 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useDashboard } from "@/hooks/useDashboard";
+import { useAuth } from "@/hooks/useAuth";
 import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import Banner from "@/components/ui/Banner";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import MetricCard from "@/components/shared/MetricCard";
 import StreakCounter from "@/components/shared/StreakCounter";
 import AlertBanner from "@/components/shared/AlertBanner";
 import CalorieProgressBar from "@/components/charts/CalorieProgressBar";
+import MacroCircle from "@/components/charts/MacroCircle";
+import BodyTypeVisual from "@/components/shared/BodyTypeVisual";
+import WeeklyReview from "@/components/shared/WeeklyReview";
 
 const WeightTrendChart = dynamic(() => import("@/components/charts/WeightTrendChart"), {
   ssr: false,
@@ -19,7 +22,18 @@ const WeightTrendChart = dynamic(() => import("@/components/charts/WeightTrendCh
 });
 
 export default function DashboardPage() {
-  const { summary, trends, streaks, alerts, loading, trendDays, setTrendDays } = useDashboard();
+  const {
+    summary,
+    trends,
+    streaks,
+    alerts,
+    weeklyReview,
+    currentMonthMetrics,
+    loading,
+    trendDays,
+    setTrendDays,
+  } = useDashboard();
+  const { user } = useAuth();
 
   if (loading) {
     return (
@@ -30,6 +44,14 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  const today = summary?.today;
+  const targets = summary?.targets;
+
+  // Check if any macro targets are set
+  const hasMacroTargets =
+    targets &&
+    (targets.protein_target || targets.carbs_target || targets.fats_target || targets.fibre_target);
 
   return (
     <motion.div
@@ -57,42 +79,102 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-3">
         <MetricCard
           label="Weight"
-          value={summary?.today?.weight ?? "—"}
+          value={today?.weight ?? "—"}
           unit="kg"
         />
         <MetricCard
           label="Steps"
-          value={summary?.today?.steps ?? "—"}
+          value={today?.steps ?? "—"}
+          unit={targets?.steps_target ? `/ ${targets.steps_target}` : undefined}
         />
       </div>
 
-      {/* Calories & Protein vs targets */}
-      {summary?.today && summary?.targets && (
+      {/* Calories & Protein progress bars */}
+      {today && targets && (
         <Card className="p-4 space-y-4">
           <CalorieProgressBar
-            current={summary.today.calories}
-            target={summary.targets.calorie_target}
+            current={today.calories}
+            target={targets.calorie_target}
             label="Calories"
           />
           <CalorieProgressBar
-            current={summary.today.protein}
-            target={summary.targets.protein_target}
+            current={today.protein}
+            target={targets.protein_target}
             label="Protein"
           />
         </Card>
       )}
 
-      {/* Streaks */}
-      {streaks && (
+      {/* Macro progress circles */}
+      {today && hasMacroTargets && (
         <Card className="p-4">
-          <h2 className="text-sm font-medium text-text-secondary mb-3">Current Streaks</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <StreakCounter label="Protein Hit" value={streaks.protein_streak} />
-            <StreakCounter label="Calories OK" value={streaks.calorie_streak} />
-            <StreakCounter label="Workouts" value={streaks.workout_streak} />
+          <h2 className="text-sm font-medium text-text-secondary mb-3">Macro Progress</h2>
+          <div className="flex justify-around">
+            {targets.protein_target > 0 && (
+              <MacroCircle
+                label="Protein"
+                current={today.protein}
+                target={targets.protein_target}
+                color="var(--color-status-success)"
+              />
+            )}
+            {targets.carbs_target != null && targets.carbs_target > 0 && (
+              <MacroCircle
+                label="Carbs"
+                current={today.carbs ?? 0}
+                target={targets.carbs_target}
+                color="var(--color-accent-primary)"
+              />
+            )}
+            {targets.fats_target != null && targets.fats_target > 0 && (
+              <MacroCircle
+                label="Fats"
+                current={today.fats ?? 0}
+                target={targets.fats_target}
+                color="var(--color-status-warning)"
+              />
+            )}
+            {targets.fibre_target != null && targets.fibre_target > 0 && (
+              <MacroCircle
+                label="Fibre"
+                current={today.fibre ?? 0}
+                target={targets.fibre_target}
+                color="var(--color-status-info, var(--color-accent-primary))"
+              />
+            )}
           </div>
         </Card>
       )}
+
+      {/* Body type visual + Streaks side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Streaks */}
+        {streaks && (
+          <Card className="p-4">
+            <h2 className="text-sm font-medium text-text-secondary mb-3">Current Streaks</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <StreakCounter label="Protein Hit" value={streaks.protein_streak} />
+              <StreakCounter label="Calories OK" value={streaks.calorie_streak} />
+              <StreakCounter label="Workouts" value={streaks.workout_streak} />
+            </div>
+          </Card>
+        )}
+
+        {/* Body type visual */}
+        {currentMonthMetrics?.bmi != null && currentMonthMetrics.bmi_category && user && (
+          <Card className="p-4 flex flex-col items-center justify-center">
+            <h2 className="text-sm font-medium text-text-secondary mb-3">Body Type</h2>
+            <BodyTypeVisual
+              gender={user.gender}
+              bmiCategory={currentMonthMetrics.bmi_category}
+              bmi={currentMonthMetrics.bmi}
+            />
+          </Card>
+        )}
+      </div>
+
+      {/* Weekly Review */}
+      <WeeklyReview data={weeklyReview} />
 
       {/* Weight trend chart */}
       <Card className="p-4">

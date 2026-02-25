@@ -4,17 +4,22 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDailyLog } from "@/hooks/useDailyLog";
 import { useToast } from "@/components/ui/Toast";
-import { formatDate } from "@/lib/utils";
+import { formatDate, isWithin7Days } from "@/lib/utils";
 import DateScroller from "@/components/shared/DateScroller";
 import DailyLogForm from "@/components/forms/DailyLogForm";
-import type { DailyLog, DailyLogFormData } from "@/types/log";
+import MealSection from "@/components/shared/MealSection";
+import CustomMetricsManager from "@/components/shared/CustomMetricsManager";
+import type { DailyLog, DailyLogFormData, FoodEntry, MealType } from "@/types/log";
 import api from "@/lib/api";
+
+const MEAL_ORDER: MealType[] = ["breakfast", "lunch", "snack", "dinner"];
 
 export default function LogPage() {
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
   const [currentLog, setCurrentLog] = useState<DailyLog | null>(null);
   const [yesterdayLog, setYesterdayLog] = useState<DailyLog | null>(null);
   const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
+  const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
   const { getLog, createLog, updateLog, loading } = useDailyLog();
   const { showToast } = useToast();
 
@@ -44,11 +49,22 @@ export default function LogPage() {
     }
   }, []);
 
+  const loadFoodEntries = useCallback(async (date: string) => {
+    try {
+      const res = await api.get(`/logs/${date}/meals/`);
+      const entries = res.data.data?.results || res.data.results || res.data.data || res.data || [];
+      setFoodEntries(Array.isArray(entries) ? entries : []);
+    } catch {
+      setFoodEntries([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadLog(selectedDate);
     loadYesterday();
     loadLoggedDates();
-  }, [selectedDate, loadLog, loadYesterday, loadLoggedDates]);
+    loadFoodEntries(selectedDate);
+  }, [selectedDate, loadLog, loadYesterday, loadLoggedDates, loadFoodEntries]);
 
   const handleSubmit = async (data: DailyLogFormData) => {
     try {
@@ -66,6 +82,17 @@ export default function LogPage() {
       showToast("Failed to save log.", "error");
     }
   };
+
+  const handleFoodEntriesChange = () => {
+    loadFoodEntries(selectedDate);
+    // Reload the log too since backend recomputes totals
+    loadLog(selectedDate);
+  };
+
+  const entriesByMeal = (meal: MealType) =>
+    foodEntries.filter((e) => e.meal_type === meal);
+
+  const isLocked = !isWithin7Days(selectedDate);
 
   return (
     <motion.div
@@ -88,6 +115,40 @@ export default function LogPage() {
           yesterdayLog={yesterdayLog}
           onSubmit={handleSubmit}
           loading={loading}
+        />
+      </div>
+
+      {/* Food Logging — only shown when a daily log exists */}
+      {currentLog && (
+        <div className="mt-8 space-y-4">
+          <h2 className="text-lg font-semibold text-text-primary">Meals</h2>
+          {MEAL_ORDER.map((meal) => (
+            <MealSection
+              key={meal}
+              mealType={meal}
+              date={selectedDate}
+              entries={entriesByMeal(meal)}
+              onEntriesChange={handleFoodEntriesChange}
+              disabled={isLocked}
+            />
+          ))}
+          {foodEntries.length > 0 && (
+            <div className="text-sm text-text-secondary px-1">
+              Meal totals: {foodEntries.reduce((s, e) => s + e.calories, 0)} kcal &middot;{" "}
+              P {foodEntries.reduce((s, e) => s + Number(e.protein), 0).toFixed(1)}g &middot;{" "}
+              C {foodEntries.reduce((s, e) => s + Number(e.carbs), 0).toFixed(1)}g &middot;{" "}
+              F {foodEntries.reduce((s, e) => s + Number(e.fats), 0).toFixed(1)}g
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Custom Metrics */}
+      <div className="mt-8">
+        <CustomMetricsManager
+          date={selectedDate}
+          hasLog={!!currentLog}
+          disabled={isLocked}
         />
       </div>
     </motion.div>

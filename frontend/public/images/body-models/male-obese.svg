@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Male - Obese</title>
+  <circle cx="100" cy="40" r="32"/>
+  <rect x="84" y="72" width="32" height="16" rx="4"/>
+  <path d="M58 88 L38 190 L72 235 L100 242 L128 235 L162 190 L142 88 Z"/>
+  <path d="M58 88 L28 185 L40 192 L66 105 Z"/>
+  <path d="M142 88 L172 185 L160 192 L134 105 Z"/>
+  <path d="M72 235 L64 350 L92 350 L100 242 Z"/>
+  <path d="M128 235 L136 350 L108 350 L100 242 Z"/>
+  <rect x="58" y="350" width="38" height="12" rx="6"/>
+  <rect x="104" y="350" width="38" height="12" rx="6"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Male - Overweight</title>
+  <circle cx="100" cy="40" r="30"/>
+  <rect x="86" y="70" width="28" height="18" rx="4"/>
+  <path d="M65 88 L48 195 L78 225 L100 230 L122 225 L152 195 L135 88 Z"/>
+  <path d="M65 88 L38 185 L48 190 L72 105 Z"/>
+  <path d="M135 88 L162 185 L152 190 L128 105 Z"/>
+  <path d="M76 225 L68 350 L92 350 L100 230 Z"/>
+  <path d="M124 225 L132 350 L108 350 L100 230 Z"/>
+  <rect x="63" y="350" width="34" height="10" rx="5"/>
+  <rect x="103" y="350" width="34" height="10" rx="5"/>
+</svg>

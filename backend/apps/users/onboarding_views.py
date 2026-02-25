@@ -74,13 +74,18 @@ class OnboardingTargetsView(generics.GenericAPIView):
         weight = data.pop("weight")
 
         # Create or update user target
+        target_defaults = {
+            "calorie_target": data["calorie_target"],
+            "protein_target": data["protein_target"],
+            "goal_weight": data["goal_weight"],
+        }
+        for field in ("carbs_target", "fats_target", "fibre_target", "water_target", "sleep_target", "steps_target"):
+            if field in data and data[field] is not None:
+                target_defaults[field] = data[field]
+
         UserTarget.objects.update_or_create(
             user=user,
-            defaults={
-                "calorie_target": data["calorie_target"],
-                "protein_target": data["protein_target"],
-                "goal_weight": data["goal_weight"],
-            },
+            defaults=target_defaults,
         )
 
         # Create initial daily log with weight
@@ -99,7 +104,6 @@ class OnboardingTargetsView(generics.GenericAPIView):
                 "water": Decimal("0.0"),
                 "sleep": Decimal("0.0"),
                 "workout": False,
-                "cardio": False,
                 "fruit": False,
                 "protein_hit": False,
                 "calories_ok": False,

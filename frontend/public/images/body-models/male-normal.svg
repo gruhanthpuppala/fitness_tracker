@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Male - Normal</title>
+  <circle cx="100" cy="40" r="28"/>
+  <rect x="88" y="68" width="24" height="20" rx="4"/>
+  <path d="M70 88 L58 200 L82 215 L100 220 L118 215 L142 200 L130 88 Z"/>
+  <path d="M70 88 L45 185 L54 188 L76 105 Z"/>
+  <path d="M130 88 L155 185 L146 188 L124 105 Z"/>
+  <path d="M78 215 L72 350 L92 350 L100 220 Z"/>
+  <path d="M122 215 L128 350 L108 350 L100 220 Z"/>
+  <rect x="67" y="350" width="30" height="10" rx="5"/>
+  <rect x="103" y="350" width="30" height="10" rx="5"/>
+</svg>

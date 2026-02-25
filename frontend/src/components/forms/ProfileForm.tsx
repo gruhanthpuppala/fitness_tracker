@@ -54,6 +54,8 @@ export default function ProfileForm({ user, onSubmit, loading }: ProfileFormProp
         <select value={dietType} onChange={(e) => setDietType(e.target.value)} className="input-field w-full">
           <option value="Vegetarian">Vegetarian</option>
           <option value="Non-Vegetarian">Non-Vegetarian</option>
+          <option value="Vegan">Vegan</option>
+          <option value="Eggetarian">Eggetarian</option>
         </select>
       </div>
       <Button type="submit" className="w-full" loading={loading}>

@@ -44,6 +44,12 @@ class UserTargetSerializer(serializers.ModelSerializer):
             "calorie_target",
             "protein_target",
             "goal_weight",
+            "carbs_target",
+            "fats_target",
+            "fibre_target",
+            "water_target",
+            "sleep_target",
+            "steps_target",
             "created_at",
             "updated_at",
         ]

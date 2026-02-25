@@ -13,6 +13,7 @@ class SettingsView(generics.GenericAPIView):
     """Settings facade — aggregates user profile + targets."""
 
     permission_classes = [IsAuthenticated, IsEmailVerified, IsOnboarded]
+    swagger_schema = None
 
     def get_throttles(self):
         if self.request.method == "GET":

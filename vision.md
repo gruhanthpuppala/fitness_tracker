@@ -1,9 +1,10 @@
 # MASTER VISION DOCUMENT — PERSONAL FITNESS TRACKING WEB APP
 
-**Version:** 2.3
-**Last Updated:** 2026-02-14
-**Status:** Approved for Development (Final Corrected)
+**Version:** 2.4
+**Last Updated:** 2026-02-25
+**Status:** Approved for Development
 **Changelog:**
+- v2.4 — Major feature expansion: Food logging system (Food + FoodEntry models, seed data, meal-based logging), custom daily metrics, workout type system (replaces cardio boolean), weekly review, body type visual model, expanded UserTarget (carbs/fats/fibre/water/sleep/steps targets), 4 diet types (Vegetarian, Non-Vegetarian, Vegan, Eggetarian), Mailpit for dev email testing. Sprint plan restructured for new features.
 - v2.3 — Fixed 21 technical gaps: onboarding weight storage, settings facade, div-by-zero guard, OAuth linking fix, duplicate endpoint removal, management command placement, email config, Django admin fields, body_measurements immutability, simplejwt blacklist, field naming, streak rules, future date blocking, refresh failure handling, lockout scope, rate limit response format, deactivation behavior, dashboard models.py, password field rename, google-auth library, cron for MVP
 - v2.2 — Added DB CHECK constraints, UNIQUE on body_measurements, timezone policy (UTC), pagination limits, validation notes
 - v2.1 — Applied 10-section technical corrections (DB schema, auth strategy, rate limiting, business rules, frontend architecture, DevOps, testing, admin roles, hosting, development rules)
@@ -185,16 +186,24 @@ Collect (all required):
 * Height (cm) — metric only
 * Current Weight (kg) — metric only
 * Average Sitting Hours per day
-* Diet Type (Vegetarian / Non-Vegetarian)
+* Diet Type (Vegetarian / Non-Vegetarian / Vegan / Eggetarian)
 
 ### Step 3 — Target Setup + Backend Processing
-User submits:
+User submits (required):
 * Daily Calorie Target (kcal)
 * Daily Protein Target (g)
 * Goal Weight (kg)
 
+User may also submit (optional):
+* Carbs Target (g)
+* Fats Target (g)
+* Fibre Target (g)
+* Water Target (liters)
+* Sleep Target (hours)
+* Steps Target (count)
+
 Backend auto-processes on target submission:
-* Creates initial `daily_log` entry for today with the collected weight (calories/protein/steps/water/sleep set to 0, workout/cardio/fruit set to FALSE). This serves as the baseline weight for BMI calculation.
+* Creates initial `daily_log` entry for today with the collected weight (calories/protein/steps/water/sleep set to 0, workout/fruit set to FALSE). This serves as the baseline weight for BMI calculation.
 * BMI = weight / (height in meters)^2 — uses weight from the freshly created daily_log entry
 * BMI Category (Underweight < 18.5 / Normal 18.5-24.9 / Overweight 25-29.9 / Obese >= 30)
 * Sets `is_onboarded = TRUE`
@@ -204,6 +213,7 @@ Backend auto-processes on target submission:
 
 ### Onboarding UI
 * Multi-step form with progress indicator
+* Simple styled inputs for MVP (fancy scroll widgets deferred to Phase 2+)
 * Framer Motion slide transitions between steps
 * Validation on each step before proceeding
 * Mobile-optimized layout (single column, large touch targets)
@@ -243,6 +253,12 @@ user_id         UUID REFERENCES users(id) ON DELETE CASCADE
 calorie_target  INTEGER NOT NULL CHECK (calorie_target > 0)
 protein_target  INTEGER NOT NULL CHECK (protein_target > 0)
 goal_weight     DECIMAL(5,1) NOT NULL CHECK (goal_weight > 0)
+carbs_target    INTEGER NULL                — optional macro target
+fats_target     INTEGER NULL                — optional macro target
+fibre_target    INTEGER NULL                — optional macro target
+water_target    DECIMAL(3,1) NULL           — liters
+sleep_target    DECIMAL(3,1) NULL           — hours
+steps_target    INTEGER NULL
 created_at      TIMESTAMP DEFAULT NOW()
 updated_at      TIMESTAMP DEFAULT NOW()
 UNIQUE(user_id)
@@ -258,11 +274,12 @@ calories        INTEGER NOT NULL CHECK (calories >= 0)
 protein         INTEGER NOT NULL CHECK (protein >= 0)
 carbs           INTEGER NULL CHECK (carbs >= 0)
 fats            INTEGER NULL CHECK (fats >= 0)
+fibre           INTEGER NOT NULL DEFAULT 0 CHECK (fibre >= 0)
 steps           INTEGER NOT NULL DEFAULT 0 CHECK (steps >= 0)
 water           DECIMAL(3,1) NOT NULL DEFAULT 0 CHECK (water >= 0)
 sleep           DECIMAL(3,1) NOT NULL DEFAULT 0 CHECK (sleep >= 0 AND sleep <= 24)
 workout         BOOLEAN DEFAULT FALSE
-cardio          BOOLEAN DEFAULT FALSE
+workout_type    VARCHAR(30) NULL (weight_training | cardio | bodyweight_training) — only set when workout=TRUE
 fruit           BOOLEAN DEFAULT FALSE
 protein_hit     BOOLEAN DEFAULT FALSE
 calories_ok     BOOLEAN DEFAULT FALSE
@@ -362,6 +379,59 @@ details         JSONB NULL
 created_at      TIMESTAMP DEFAULT NOW()
 ```
 
+### foods
+```
+id                  UUID PRIMARY KEY DEFAULT gen_random_uuid()
+name                VARCHAR(255) NOT NULL
+category            VARCHAR(50) NOT NULL (grain | protein_source | vegetable | fruit | dairy | snack | beverage | condiment | other)
+diet_type           VARCHAR(20) NOT NULL (vegetarian | non_vegetarian | vegan | eggetarian)
+calories_per_100g   INTEGER NOT NULL CHECK (calories_per_100g >= 0)
+protein_per_100g    DECIMAL(5,1) NOT NULL CHECK (protein_per_100g >= 0)
+carbs_per_100g      DECIMAL(5,1) NOT NULL CHECK (carbs_per_100g >= 0)
+fats_per_100g       DECIMAL(5,1) NOT NULL CHECK (fats_per_100g >= 0)
+fibre_per_100g      DECIMAL(5,1) NOT NULL CHECK (fibre_per_100g >= 0)
+is_custom           BOOLEAN DEFAULT FALSE
+created_by          UUID NULL REFERENCES users(id) ON DELETE CASCADE  — null for system foods
+created_at          TIMESTAMP DEFAULT NOW()
+```
+
+### food_entries
+```
+id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
+daily_log_id    UUID REFERENCES daily_logs(id) ON DELETE CASCADE
+food_id         UUID REFERENCES foods(id) ON DELETE PROTECT
+meal_type       VARCHAR(20) NOT NULL (breakfast | lunch | snack | dinner)
+quantity_grams  DECIMAL(6,1) NOT NULL CHECK (quantity_grams > 0)
+— denormalized, computed on save:
+calories        INTEGER NOT NULL DEFAULT 0
+protein         DECIMAL(5,1) NOT NULL DEFAULT 0
+carbs           DECIMAL(5,1) NOT NULL DEFAULT 0
+fats            DECIMAL(5,1) NOT NULL DEFAULT 0
+fibre           DECIMAL(5,1) NOT NULL DEFAULT 0
+created_at      TIMESTAMP DEFAULT NOW()
+```
+
+### custom_metric_definitions
+```
+id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
+user_id     UUID REFERENCES users(id) ON DELETE CASCADE
+name        VARCHAR(100) NOT NULL
+unit        VARCHAR(50) NOT NULL
+is_active   BOOLEAN DEFAULT TRUE
+created_at  TIMESTAMP DEFAULT NOW()
+UNIQUE(user_id, name)
+```
+
+### custom_metric_entries
+```
+id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
+definition_id   UUID REFERENCES custom_metric_definitions(id) ON DELETE CASCADE
+daily_log_id    UUID REFERENCES daily_logs(id) ON DELETE CASCADE
+value           DECIMAL(8,2) NOT NULL
+created_at      TIMESTAMP DEFAULT NOW()
+UNIQUE(definition_id, daily_log_id)
+```
+
 ### DATABASE INDEXES (Mandatory)
 ```sql
 -- Performance-critical indexes
@@ -373,6 +443,10 @@ CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL;
+CREATE INDEX idx_foods_name ON foods(name);
+CREATE INDEX idx_foods_diet_type ON foods(diet_type);
+CREATE INDEX idx_foods_created_by ON foods(created_by);
+CREATE INDEX idx_food_entries_log_meal ON food_entries(daily_log_id, meal_type);
 ```
 These are implemented as Django model `Meta.indexes` and created via migrations.
 
@@ -436,6 +510,32 @@ DELETE /api/v1/logs/{date}/            — Delete log (API-enforced: only within
 GET    /api/v1/logs/today/             — Shortcut: get today's log
 ```
 
+### Food Endpoints
+```
+GET    /api/v1/foods/                     — Search/list foods (filter: ?search=, ?diet_type=, ?category=)
+POST   /api/v1/foods/                     — Create custom food (is_custom=True, created_by=request.user)
+GET    /api/v1/foods/{id}/                — Food detail
+DELETE /api/v1/foods/{id}/delete/         — Delete custom food (owner only)
+```
+
+### Meal (Food Entry) Endpoints
+```
+GET    /api/v1/logs/{date}/meals/         — List food entries for a daily log
+POST   /api/v1/logs/{date}/meals/         — Add food entry to daily log (auto-recomputes daily totals)
+GET    /api/v1/logs/{date}/meals/{id}/    — Get specific food entry
+PUT    /api/v1/logs/{date}/meals/{id}/    — Update food entry (auto-recomputes daily totals)
+DELETE /api/v1/logs/{date}/meals/{id}/    — Remove food entry (auto-recomputes daily totals)
+```
+
+### Custom Metrics Endpoints
+```
+GET    /api/v1/logs/custom-metrics/       — List user's active metric definitions
+POST   /api/v1/logs/custom-metrics/       — Create new metric definition
+DELETE /api/v1/logs/custom-metrics/{id}/  — Soft-delete (is_active=False)
+GET    /api/v1/logs/{date}/custom-entries/ — Get custom metric values for a day
+POST   /api/v1/logs/{date}/custom-entries/ — Log custom metric values for a day
+```
+
 ### Body Measurements Endpoints
 ```
 GET    /api/v1/measurements/           — List all measurements (paginated)
@@ -449,7 +549,8 @@ GET    /api/v1/measurements/{id}/      — Get specific measurement
 GET    /api/v1/dashboard/summary/      — Today's summary (weight, calories, protein vs targets)
 GET    /api/v1/dashboard/trends/       — Weight trend data (7/14/30 day)
 GET    /api/v1/dashboard/streaks/      — All streak data (protein, calorie, workout)
-GET    /api/v1/dashboard/alerts/       — Active alerts/warnings
+GET    /api/v1/dashboard/alerts/       — Active alerts/warnings (includes workout variety check)
+GET    /api/v1/dashboard/weekly-review/ — Weekly summary (last 7 days: avg calories/protein, workouts, weight change, consistency)
 GET    /api/v1/dashboard/monthly/      — Monthly metrics (current + historical, triggers on-demand compute if stale)
 ```
 
@@ -573,10 +674,14 @@ Tabs:
   * Protein hit streak (days)
   * Calorie compliance streak (days)
   * Workout streak (days)
+* Macro progress circles (protein / carbs / fats / fibre vs targets) — circular progress bars
+* Body type visual model — static silhouette mapped from (gender, bmi_category), 8 SVG images
 * Alerts section:
   * "3 days off calorie target"
   * "No workouts in 5 days"
+  * "Try different workout types for variety" (weekly workout variety rule)
   * "No body measurement in 30+ days"
+* Weekly review link — navigates to weekly summary (avg calories/protein, workouts, weight change, consistency score)
 * Banner: "You haven't logged today" (if applicable)
 
 **Primary CTA:** "Log Today" button (navigates to daily log with today pre-selected)
@@ -597,26 +702,39 @@ Tabs:
 
 **REQUIRED SECTION (always visible):**
 * Weight (kg) — number input, auto-focused
-* Calories (kcal) — number input
-* Protein (g) — number input
+* Calories (kcal) — number input (auto-computed from food entries if using meal logging)
+* Protein (g) — number input (auto-computed from food entries if using meal logging)
 * Steps — number input
 * Water (liters) — number input with 0.5 increments
 * Sleep (hours) — number input with 0.5 increments
 * Workout (toggle switch)
-* Cardio (toggle switch)
+* Workout Type (radio: Weight Training / Cardio / Bodyweight Training) — only shown when Workout is ON
+
+**FOOD LOGGING SECTION (4 meals):**
+* Breakfast, Lunch, Snack, Dinner — each expandable
+* Food search bar → search foods API → select food → enter quantity (grams)
+* Each entry shows computed calories/protein/carbs/fats/fibre
+* Per-meal subtotals, daily totals auto-computed
+* Adding/editing/removing food entries auto-recomputes DailyLog macro totals
 
 **Smart Input Behavior (Frontend UX Rules — Mandatory):**
 * Auto-focus on first empty field when page loads
 * Tab/Enter moves to next field (sequential flow)
 * Quick-fill button: "Copy yesterday's values" (prefills from previous day's log)
 * Number inputs with increment/decrement buttons on mobile
-* Toggle switches for all boolean values (workout, cardio, fruit)
+* Toggle switches for all boolean values (workout, fruit)
 * Date auto-selected to today (zero taps for today's log)
 
 **OPTIONAL SECTION (collapsible, hidden by default):**
 * Carbs (g)
 * Fats (g)
+* Fibre (g)
 * Fruit (toggle)
+
+**CUSTOM METRICS SECTION:**
+* User-defined metrics with custom names and units
+* Create/manage metric definitions via "Manage Metrics" button
+* Log daily values for each active metric
 
 **AUTO-CALCULATED (displayed, not editable):**
 * Protein Hit? — olive green check if protein >= target, muted red X if not
@@ -650,8 +768,8 @@ Tabs:
 **Purpose:** User profile management and app preferences
 
 **Sections:**
-* **Profile Information** — Edit name, age, height, weight, sitting hours, diet type
-* **Targets** — Edit calorie target, protein target, goal weight
+* **Profile Information** — Edit name, age, height, weight, sitting hours, diet type (4 options)
+* **Targets** — Edit calorie target, protein target, goal weight, carbs target, fats target, fibre target, water target, sleep target, steps target
 * **Account** — Change password (email users), view email, auth provider info
 * **About** — App version, BMI info display
 * **Danger Zone** — Deactivate account (with confirmation)
@@ -695,6 +813,36 @@ consistency_score:
   + (workout_days / days_logged) * 30
 ```
 Score out of 100. Guard clause prevents division by zero when no logs exist for the month. Computed via Django management command (`compute_monthly_metrics`).
+
+### Food Entry Auto-Computation
+When a FoodEntry is created, updated, or deleted:
+1. Nutrient values are computed from food's per-100g values × (quantity_grams / 100)
+2. DailyLog totals (calories, protein, carbs, fats, fibre) are recomputed as SUM of all food entries
+3. `protein_hit` and `calories_ok` are recomputed via existing `compute_daily_evaluations()`
+Manual macro entry still supported — user can create a "custom food" with manual values.
+
+### Workout Weekly Variety Rule
+Computed on dashboard load:
+```
+types_done = distinct workout_type values this week (Mon-Sun) where workout=True
+meets_rule = len(types_done) >= 2
+```
+If fewer than 2 workout types done this week, dashboard shows a warning alert.
+
+### Weekly Review
+Computed on-demand via `GET /api/v1/dashboard/weekly-review/`:
+* Period: last 7 days
+* avg_calories, avg_protein, workouts_done, workout_types_used
+* weight_change (first vs last logged weight in period)
+* consistency_score (7-day version of monthly formula)
+* protein_hit_days
+
+### Body Type Visual Model
+Static mapping — no new DB model needed:
+* 8 static SVG images: 4 BMI categories × 2 genders
+* Images: `frontend/public/images/body-models/{gender}-{bmi_category}.svg`
+* Backend already computes BMI + category in onboarding and monthly metrics
+* Frontend maps `(gender, bmi_category)` → image path
 
 ### Monthly Metrics
 Computed per user per month via management command + on-demand:
@@ -869,7 +1017,7 @@ Implemented via Django's built-in `is_superuser` and `is_staff` flags + custom p
 * Sleep: hours (decimal to 1 place — e.g., 7.5)
 * Body measurements: cm (decimal to 1 place)
 * Calories: kcal (integer)
-* Protein/Carbs/Fats: grams (integer)
+* Protein/Carbs/Fats/Fibre: grams (integer)
 * Steps: count (integer)
 
 ---
@@ -904,7 +1052,7 @@ These are not optional — they define the core <15 second logging experience:
 1. Auto-focus first empty field on page load
 2. Enter/Tab moves to next input (sequential field flow)
 3. Prefill from yesterday's values via "Copy yesterday" button
-4. Toggle switches for all boolean values (workout, cardio, fruit)
+4. Toggle switches for boolean values (workout, fruit), workout type radio when workout=True
 5. Date auto-selected to today (zero interaction needed for today's log)
 6. Sticky save button at bottom on mobile
 7. Inline validation errors (no alert dialogs)
@@ -939,6 +1087,7 @@ docker-compose.dev.yml       # Development only
 Services:
 * `postgres` — PostgreSQL 16 container (port 5432)
 * `backend` — Django dev server (port 8000)
+* `mailpit` — Email testing UI (SMTP port 1025, web UI port 8025)
 * `pgadmin` — pgAdmin web UI (optional, port 5050)
 
 **Frontend runs separately** via `npm run dev` (port 3000) — NOT in Docker.
@@ -954,9 +1103,10 @@ Reason: Faster HMR, better DX, Tailwind/Next.js dev server works best natively.
 
 ### Email Configuration
 **Development:**
-- Django `EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'`
-- All emails printed to console/terminal (zero setup needed)
-- Optional: Add Mailpit container to `docker-compose.dev.yml` for visual email testing
+- Django `EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'` pointed at Mailpit (localhost:1025)
+- Mailpit container in `docker-compose.dev.yml` provides visual email testing at http://localhost:8025
+- Password reset and verification emails are viewable in Mailpit web UI
+- Fallback: Switch to `console.EmailBackend` if running without Docker (emails print to Django terminal)
 
 **Production:**
 - Django `EMAIL_BACKEND = 'django.core.mail.backends.smtp.SMTPBackend'`
@@ -1043,12 +1193,27 @@ backend/
 │   │   ├── urls.py
 │   │   ├── admin.py           # Jazzmin admin config
 │   │   └── tests/
-│   ├── logs/                  # Daily logs CRUD
-│   │   ├── models.py
+│   ├── foods/                 # Food catalog + meal logging
+│   │   ├── models.py          # Food, FoodEntry
 │   │   ├── serializers.py
 │   │   ├── views.py
 │   │   ├── urls.py
-│   │   ├── services.py        # protein_hit, calories_ok computation
+│   │   ├── services.py        # Recompute daily log totals from food entries
+│   │   ├── admin.py
+│   │   ├── fixtures/
+│   │   │   └── foods_seed.json  # ~100 curated Indian + international foods
+│   │   ├── management/
+│   │   │   └── commands/
+│   │   │       └── seed_foods.py
+│   │   └── tests/
+│   ├── logs/                  # Daily logs CRUD + custom metrics
+│   │   ├── models.py          # DailyLog, CustomMetricDefinition, CustomMetricEntry
+│   │   ├── serializers.py
+│   │   ├── custom_serializers.py  # Custom metric serializers
+│   │   ├── views.py
+│   │   ├── custom_views.py    # Custom metric views
+│   │   ├── urls.py
+│   │   ├── services.py        # protein_hit, calories_ok, workout variety
 │   │   └── tests/
 │   ├── measurements/          # Body measurements
 │   │   ├── models.py
@@ -1152,6 +1317,8 @@ frontend/
 │   └── styles/                     # Tailwind config and design tokens
 │       └── theme.ts
 ├── public/
+│   └── images/
+│       └── body-models/          # 8 SVG body silhouettes (gender × bmi_category)
 ├── tailwind.config.ts
 ├── next.config.js
 ├── tsconfig.json
@@ -1180,128 +1347,85 @@ README.md
 
 ## SPRINT PLAN (4 Sprints)
 
-### SPRINT 1 — Foundation & Authentication
+### SPRINT 1 — Foundation & Authentication ✅ DONE
 **Goal:** Project scaffolding, database setup, full auth system working end-to-end
 
-**Backend Tasks:**
-- [ ] Initialize Django project with split settings (base/dev/prod using django-environ)
-- [ ] Configure Docker Compose dev (PostgreSQL 16 + Django)
-- [ ] Create Custom User model (extending AbstractBaseUser) with all fields including `is_email_verified`, `failed_login_attempts`, `locked_until`
-- [ ] Create audit_logs model
-- [ ] Implement email/password registration + email verification flow
-- [ ] Implement Google OAuth login with account linking (no duplicate users)
-- [ ] Implement JWT token refresh with rotation and logout with blacklisting
-- [ ] Implement password reset (email link) and password change endpoints
-- [ ] Implement account lockout (5 failed attempts, 15-min cooldown)
-- [ ] Set up core utilities: permissions, pagination, throttling (endpoint-specific rates), renderers, exception handler
-- [ ] Set up Swagger/OpenAPI documentation (drf-yasg)
-- [ ] Set up Django Jazzmin admin theme with roles (superadmin, staff)
-- [ ] Configure CORS (no CSRF — header-based JWT only)
-- [ ] Add database indexes via Django model Meta
-- [ ] Write auth endpoint tests (pytest) — registration, login, OAuth, tokens, verification
-- [ ] Export Postman collection for auth endpoints
-
-**Frontend Tasks:**
-- [ ] Initialize Next.js project with App Router
-- [ ] Configure Tailwind CSS with custom dark theme (full color palette)
-- [ ] Set up Framer Motion
-- [ ] Set up Zod environment validation (`lib/env.ts`)
-- [ ] Build centralized API client (`lib/api.ts`) with interceptors, 401 refresh, single retry
-- [ ] Build design system primitives (Button, Input, Toggle, Card, Toast, Badge, Banner, Skeleton, ProgressBar)
-- [ ] Build login page (email/password + Google OAuth)
-- [ ] Build registration page
-- [ ] Build email verification page (check email + resend)
-- [ ] Build forgot password page
-- [ ] Implement JWT token management (memory + sessionStorage, refresh on 401)
-- [ ] Implement auth guards (redirect unauthenticated users, redirect unverified users)
-
-**DevOps:**
-- [ ] Create docker-compose.dev.yml (PostgreSQL + backend + pgAdmin optional)
-- [ ] Create .env.example with all required variables
-- [ ] Set up GitHub Actions CI (lint + test) for backend
-- [ ] Set up GitHub Actions CI (lint + build) for frontend
-
-**Deliverable:** User can register (email verified), login (email + Google with account linking), logout, and reset password. JWT header-based auth working. Dark-themed UI with design system ready. Rate limiting and account lockout active.
+**Completed:**
+- [x] Django project with split settings (base/dev/prod), Docker Compose, Custom User model
+- [x] Email/password registration + email verification, Google OAuth with account linking
+- [x] JWT token refresh with rotation, logout with blacklisting
+- [x] Password reset/change, account lockout (5 attempts, 15-min cooldown)
+- [x] Core utilities: permissions, pagination, throttling, renderers, exception handler
+- [x] Swagger/OpenAPI, Django Jazzmin admin, CORS, database indexes
+- [x] Onboarding endpoints (profile + targets), DailyLog CRUD with 7-day edit restriction
+- [x] Dashboard endpoints (summary, trends, streaks, alerts, monthly metrics)
+- [x] Body measurements with immutability and 30-day soft warning
+- [x] Settings facade, account deactivation, audit logging
 
 ---
 
-### SPRINT 2 — User Profile, Onboarding & Daily Logging
-**Goal:** Complete onboarding flow and full daily log CRUD with backend-enforced business rules
+### SPRINT 2 — Food System + Daily Log Expansion + Onboarding Updates
+**Goal:** Full food logging system, expanded daily logs with workout types and fibre, updated onboarding with 4 diet types and expanded targets
 
 **Backend Tasks:**
-- [ ] Implement onboarding endpoints (profile + targets, sets `is_onboarded = TRUE`)
-- [ ] Implement `IsOnboarded` permission (blocks non-onboarded users from app endpoints)
-- [ ] Implement User profile GET/PUT/PATCH endpoints
-- [ ] Implement UserTargets CRUD endpoints
-- [ ] Create DailyLog model and migrations
-- [ ] Implement DailyLog CRUD endpoints with date-based URLs
-- [ ] Implement protein_hit and calories_ok computation in **service layer** (not generated columns)
-- [ ] Implement 7-day edit restriction at **API level** (permission check, not frontend-only)
-- [ ] Add pagination and date range filtering for logs
-- [ ] Write tests for all Sprint 2 endpoints (focus: log CRUD, 7-day rule, computation accuracy)
+- [x] Add Mailpit to docker-compose.dev.yml for visual email testing
+- [x] Expand DietTypeChoices: add Vegan, Eggetarian (4 total)
+- [x] Expand UserTarget model: add carbs_target, fats_target, fibre_target, water_target, sleep_target, steps_target
+- [x] Expand DailyLog: add fibre field, workout_type field (weight_training/cardio/bodyweight_training), remove cardio boolean
+- [x] Create `foods` app: Food model, FoodEntry model with denormalized nutrients
+- [x] Food CRUD API: search/filter, create custom foods, detail, delete (owner only)
+- [x] Meal logging API: add/update/delete food entries per daily log with auto-recompute of daily totals
+- [x] Seed data: `seed_foods` management command with ~100 curated Indian + international foods
+- [x] Update onboarding serializers/views for 4 diet types and expanded targets
+- [x] Update settings facade for expanded target fields
+- [ ] Write tests for food CRUD, meal logging, auto-recompute, expanded targets
 
 **Frontend Tasks:**
-- [ ] Build multi-step onboarding form (profile -> targets -> review with BMI display)
-- [ ] Build onboarding progress bar and slide transitions
-- [ ] Build daily log page with horizontal date scroller
-- [ ] Build smart text input form (auto-focus, tab-through, enter-to-next)
-- [ ] Build "Copy yesterday's values" quick-fill
-- [ ] Build toggle switches for workout/cardio/fruit
-- [ ] Build collapsible optional fields section
-- [ ] Build auto-calculated indicators (protein hit, calories OK — from API response)
-- [ ] Build locked state for logs older than 7 days (visual-only, backend is authority)
-- [ ] Build success toast notification on save
+- [ ] Build food search + meal logging UI on daily log page (4 meals: breakfast/lunch/snack/dinner)
+- [ ] Build workout type selector (radio buttons when workout=True)
+- [ ] Build fibre field in daily log form
+- [ ] Update onboarding forms: 4 diet types, expanded target fields (simple styled inputs)
+- [ ] Update settings page: expanded target editing
 
-**Deliverable:** New user can complete onboarding, log daily health data, edit recent logs, and see auto-calculated metrics. All business rules enforced at API level.
+**Deliverable:** Users can search foods, log meals by quantity, see auto-computed daily totals. Workout types tracked. Expanded targets for macros/water/sleep/steps.
 
 ---
 
-### SPRINT 3 — Dashboard, Charts & Body Measurements
-**Goal:** Dashboard with trends, streaks, alerts. Body measurements tracking.
+### SPRINT 3 — Custom Metrics + Workout System + Dashboard + Weekly Review + Body Visual
+**Goal:** Custom daily metrics, workout variety rule, weekly review, body type visual on dashboard
 
 **Backend Tasks:**
-- [ ] Implement dashboard summary endpoint (today's data vs targets)
-- [ ] Implement weight trend endpoint (7/14/30 day data)
-- [ ] Implement streak calculation logic in service layer (protein, calorie, workout)
-- [ ] Implement alerts logic (days off target, no workout warnings)
-- [ ] Create BodyMeasurement model and migrations
-- [ ] Implement measurement CRUD endpoints with soft 30-day warning (returns `warning` field in response)
-- [ ] Implement monthly metrics computation as Django management command (`compute_monthly_metrics`)
-- [ ] Implement on-demand monthly metrics refresh (dashboard triggers if stale > 24h)
-- [ ] Implement expired token cleanup management command (`cleanup_expired_tokens`)
-- [ ] Write tests for all Sprint 3 endpoints (focus: streaks, alerts, warning flag, metrics computation)
+- [x] Custom metric system: CustomMetricDefinition + CustomMetricEntry models
+- [x] Custom metrics API: CRUD definitions, log daily values
+- [x] Workout weekly variety rule: check_weekly_workout_variety() service function
+- [x] Dashboard alerts: add workout variety warning
+- [x] Weekly review: get_weekly_review() service + WeeklyReviewView + URL
+- [x] Body type visual: 8 SVG placeholders (4 BMI categories × 2 genders)
+- [ ] Write tests for custom metrics, workout variety, weekly review
 
 **Frontend Tasks:**
-- [ ] Build dashboard page layout (cards grid, mobile single column)
-- [ ] Build weight trend chart (Recharts line chart with 7/14/30 toggle) — `"use client"`, lazy loaded
-- [ ] Build calorie and protein progress bars
-- [ ] Build streak counter components with Framer Motion count-up
-- [ ] Build alert banner components
-- [ ] Build "Log Today" CTA banner
-- [ ] Build body measurements form page
-- [ ] Build measurement history list with comparison to previous
-- [ ] Build 30-day warning banner (triggered by API `warning` field)
-- [ ] Implement chart draw-in animations
+- [ ] Build custom metrics manager (create/delete definitions + daily value entry)
+- [ ] Build macro progress circles component (protein/carbs/fats/fibre circular progress bars)
+- [ ] Build body type visual display component (maps gender + bmi_category → SVG)
+- [ ] Build weekly review page/modal (avg calories/protein, workouts, weight change, consistency)
+- [ ] Build workout variety alert display on dashboard
 
-**Deliverable:** Full dashboard with live data, charts, streaks, alerts. Body measurements with history and API-driven warnings.
+**Deliverable:** Users can create custom daily metrics, see workout variety alerts, view weekly review summaries, and see body type visual on dashboard.
 
 ---
 
 ### SPRINT 4 — Settings, Polish, Testing & Production Readiness
-**Goal:** Settings page, mobile optimization, comprehensive testing, deployment readiness.
+**Goal:** Mobile optimization, comprehensive testing, deployment readiness.
 
 **Backend Tasks:**
-- [ ] Implement settings facade endpoint (aggregates users + targets)
-- [ ] Implement account deactivation endpoint (soft delete: `is_active = FALSE`)
 - [ ] Complete audit logging coverage for all sensitive operations
 - [ ] Performance optimization (verify indexes, query optimization with `django-debug-toolbar`)
-- [ ] Core logic test coverage: 70-80% (auth, logs, calculations, permissions, streaks)
+- [ ] Core logic test coverage: 70-80% (auth, logs, foods, calculations, permissions, streaks)
 - [ ] Security audit (OWASP top 10 checklist)
 - [ ] Generate final Postman collection (all endpoints)
 - [ ] Document API in `/docs/api-reference.md`
 
 **Frontend Tasks:**
-- [ ] Build settings page (profile, targets, account, danger zone, logout)
 - [ ] Build bottom tab bar navigation (mobile)
 - [ ] Build sidebar navigation (desktop)
 - [ ] Build responsive breakpoints (mobile-first)
@@ -1330,16 +1454,21 @@ The MVP is complete when a user can:
 
 1. Register with email/password (with email verification) OR sign in with Google
 2. Google OAuth links to existing account if email matches (no duplicates)
-3. Complete mandatory onboarding (profile + targets)
+3. Complete mandatory onboarding (profile + targets with 4 diet types and expanded macro targets)
 4. Log daily health data in < 15 seconds
-5. Edit/delete logs within 7 days (API-enforced)
-6. See weight and nutrition trends on dashboard
-7. View streaks and alerts for missed targets
-8. Log body measurements with 30-day soft warning (API-driven)
-9. Update profile and targets in settings
-10. Logout securely (token blacklisted)
-11. Access all features on mobile with responsive design
-12. All business rules enforced at backend (frontend is display-only)
+5. Log food by meal (breakfast/lunch/snack/dinner) with auto-computed daily totals
+6. Track workout type (weight training / cardio / bodyweight training)
+7. Create and track custom daily metrics
+8. Edit/delete logs within 7 days (API-enforced)
+9. See weight and nutrition trends on dashboard with macro progress circles
+10. View streaks and alerts for missed targets (including workout variety)
+11. View weekly review summary (avg calories/protein, workouts, consistency)
+12. See body type visual model on dashboard based on BMI
+13. Log body measurements with 30-day soft warning (API-driven)
+14. Update profile and expanded targets in settings
+15. Logout securely (token blacklisted)
+16. Access all features on mobile with responsive design
+17. All business rules enforced at backend (frontend is display-only)
 
 ---
 
@@ -1373,14 +1502,17 @@ The MVP is complete when a user can:
 
 ---
 
-## FUTURE EXTENSIONS (NOT in MVP but architecturally supported)
+## FUTURE EXTENSIONS (Phase 2+ — NOT in MVP but architecturally supported)
 
+* **Phone/OTP authentication** — deferred to Phase 2+
+* **Interactive onboarding widgets** — fancy scroll pickers, date wheels (MVP uses simple styled inputs)
+* **Advanced body type visuals** — animated/interactive 3D models (MVP uses static SVG silhouettes)
+* **Smart nutrition systems** — barcode scanning, AI food recognition, recipe builder
 * Data export (CSV + PDF reports)
 * Profile photo upload
 * Multi-device sync
 * Mobile PWA install (offline support)
 * Coach / trainer access mode (role-based)
-* Nutrition database integration (food search)
 * Wearable step sync (Fitbit, Apple Health)
 * Email/push notifications (opt-in)
 * Custom admin dashboard (branded, Next.js)

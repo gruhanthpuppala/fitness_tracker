@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { DailyLog, DailyLogFormData } from "@/types/log";
+import type { DailyLog, DailyLogFormData, WorkoutType } from "@/types/log";
 import { isWithin7Days } from "@/lib/utils";
 import { dailyLogSchema } from "@/lib/validators";
 import Input from "@/components/ui/Input";
@@ -17,6 +17,12 @@ interface DailyLogFormProps {
   loading: boolean;
 }
 
+const WORKOUT_TYPES: { value: WorkoutType; label: string }[] = [
+  { value: "weight_training", label: "Weight Training" },
+  { value: "cardio", label: "Cardio" },
+  { value: "bodyweight_training", label: "Bodyweight" },
+];
+
 export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit, loading }: DailyLogFormProps) {
   const isLocked = !isWithin7Days(date);
   const [showOptional, setShowOptional] = useState(false);
@@ -28,9 +34,10 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
   const [water, setWater] = useState("");
   const [sleep, setSleep] = useState("");
   const [workout, setWorkout] = useState(false);
-  const [cardio, setCardio] = useState(false);
+  const [workoutType, setWorkoutType] = useState<WorkoutType | null>(null);
   const [carbs, setCarbs] = useState("");
   const [fats, setFats] = useState("");
+  const [fibre, setFibre] = useState("");
   const [fruit, setFruit] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -45,9 +52,10 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
       setWater(String(existingLog.water));
       setSleep(String(existingLog.sleep));
       setWorkout(existingLog.workout);
-      setCardio(existingLog.cardio);
+      setWorkoutType(existingLog.workout_type);
       setCarbs(existingLog.carbs != null ? String(existingLog.carbs) : "");
       setFats(existingLog.fats != null ? String(existingLog.fats) : "");
+      setFibre(existingLog.fibre ? String(existingLog.fibre) : "");
       setFruit(existingLog.fruit);
     } else {
       setWeight("");
@@ -57,9 +65,10 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
       setWater("");
       setSleep("");
       setWorkout(false);
-      setCardio(false);
+      setWorkoutType(null);
       setCarbs("");
       setFats("");
+      setFibre("");
       setFruit(false);
     }
   }, [existingLog, date]);
@@ -79,9 +88,10 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
     setWater(String(yesterdayLog.water));
     setSleep(String(yesterdayLog.sleep));
     setWorkout(yesterdayLog.workout);
-    setCardio(yesterdayLog.cardio);
+    setWorkoutType(yesterdayLog.workout_type);
     if (yesterdayLog.carbs != null) setCarbs(String(yesterdayLog.carbs));
     if (yesterdayLog.fats != null) setFats(String(yesterdayLog.fats));
+    if (yesterdayLog.fibre) setFibre(String(yesterdayLog.fibre));
     setFruit(yesterdayLog.fruit);
   };
 
@@ -98,9 +108,10 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
       water: Number(water) || 0,
       sleep: Number(sleep) || 0,
       workout,
-      cardio,
+      workout_type: workout ? workoutType : null,
       carbs: carbs ? Number(carbs) : null,
       fats: fats ? Number(fats) : null,
+      fibre: fibre ? Number(fibre) : 0,
       fruit,
     };
 
@@ -140,7 +151,36 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
       <Input label="Sleep (hrs)" type="number" step="0.5" value={sleep} onChange={(e) => setSleep(e.target.value)} error={errors.sleep} disabled={isLocked} />
 
       <Toggle label="Workout" checked={workout} onChange={setWorkout} disabled={isLocked} />
-      <Toggle label="Cardio" checked={cardio} onChange={setCardio} disabled={isLocked} />
+
+      {/* Workout type radios — shown only when workout is on */}
+      {workout && (
+        <div className="pl-2 border-l-2 border-border space-y-2">
+          <label className="block text-sm text-text-secondary">Workout Type</label>
+          <div className="flex flex-wrap gap-3">
+            {WORKOUT_TYPES.map((wt) => (
+              <label
+                key={wt.value}
+                className={`flex items-center gap-2 px-3 py-2 rounded-input border cursor-pointer transition-colors ${
+                  workoutType === wt.value
+                    ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
+                    : "border-border text-text-secondary hover:border-text-secondary"
+                } ${isLocked ? "opacity-50 pointer-events-none" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="workout_type"
+                  value={wt.value}
+                  checked={workoutType === wt.value}
+                  onChange={() => setWorkoutType(wt.value)}
+                  disabled={isLocked}
+                  className="sr-only"
+                />
+                {wt.label}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Optional section */}
       <button
@@ -155,6 +195,7 @@ export default function DailyLogForm({ date, existingLog, yesterdayLog, onSubmit
         <div className="space-y-4 pl-2 border-l-2 border-border">
           <Input label="Carbs (g)" type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} disabled={isLocked} />
           <Input label="Fats (g)" type="number" value={fats} onChange={(e) => setFats(e.target.value)} disabled={isLocked} />
+          <Input label="Fibre (g)" type="number" value={fibre} onChange={(e) => setFibre(e.target.value)} disabled={isLocked} />
           <Toggle label="Fruit" checked={fruit} onChange={setFruit} disabled={isLocked} />
         </div>
       )}

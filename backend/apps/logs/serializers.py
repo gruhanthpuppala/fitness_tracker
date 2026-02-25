@@ -16,11 +16,12 @@ class DailyLogSerializer(serializers.ModelSerializer):
             "protein",
             "carbs",
             "fats",
+            "fibre",
             "steps",
             "water",
             "sleep",
             "workout",
-            "cardio",
+            "workout_type",
             "fruit",
             "protein_hit",
             "calories_ok",
@@ -33,6 +34,17 @@ class DailyLogSerializer(serializers.ModelSerializer):
         if value > timezone.now().date():
             raise serializers.ValidationError("Future dates are not allowed.")
         return value
+
+    def validate(self, data):
+        workout = data.get("workout", getattr(self.instance, "workout", False))
+        workout_type = data.get("workout_type")
+        if workout and "workout_type" in data and not workout_type:
+            raise serializers.ValidationError(
+                {"workout_type": "Workout type is required when workout is True."}
+            )
+        if not workout and workout_type:
+            data["workout_type"] = None
+        return data
 
     def create(self, validated_data):
         user = self.context["request"].user

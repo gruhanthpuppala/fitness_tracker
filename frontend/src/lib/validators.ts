@@ -27,13 +27,19 @@ export const profileSchema = z.object({
   height_cm: z.number().min(0.1, "Height must be greater than 0"),
   weight: z.number().min(0.1, "Weight must be greater than 0"),
   avg_sitting_hours: z.number().min(0, "Must be 0 or more"),
-  diet_type: z.enum(["Vegetarian", "Non-Vegetarian"], { required_error: "Diet type is required" }),
+  diet_type: z.enum(["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"], { required_error: "Diet type is required" }),
 });
 
 export const targetSchema = z.object({
   calorie_target: z.number().int().min(1, "Calorie target must be at least 1"),
   protein_target: z.number().int().min(1, "Protein target must be at least 1"),
   goal_weight: z.number().min(0.1, "Goal weight must be greater than 0"),
+  carbs_target: z.number().int().min(0).nullable().optional(),
+  fats_target: z.number().int().min(0).nullable().optional(),
+  fibre_target: z.number().int().min(0).nullable().optional(),
+  water_target: z.number().min(0).nullable().optional(),
+  sleep_target: z.number().min(0).nullable().optional(),
+  steps_target: z.number().int().min(0).nullable().optional(),
 });
 
 export const dailyLogSchema = z.object({
@@ -44,9 +50,10 @@ export const dailyLogSchema = z.object({
   water: z.number().min(0, "Water must be 0 or more"),
   sleep: z.number().min(0, "Sleep must be 0 or more").max(24, "Sleep cannot exceed 24 hours"),
   workout: z.boolean(),
-  cardio: z.boolean(),
+  workout_type: z.enum(["weight_training", "cardio", "bodyweight_training"]).nullable().optional(),
   carbs: z.number().int().min(0).nullable().optional(),
   fats: z.number().int().min(0).nullable().optional(),
+  fibre: z.number().int().min(0).optional(),
   fruit: z.boolean().optional(),
 });
 

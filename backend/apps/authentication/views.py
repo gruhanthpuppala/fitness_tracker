@@ -115,6 +115,7 @@ class VerifyEmailView(generics.GenericAPIView):
     """Verify a user's email address using a signed token."""
 
     permission_classes = [AllowAny]
+    swagger_schema = None
 
     def post(self, request, *args, **kwargs):
         token = request.data.get("token")
@@ -153,6 +154,7 @@ class ResendVerificationView(generics.GenericAPIView):
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [AuthRateThrottle]
+    swagger_schema = None
 
     def post(self, request, *args, **kwargs):
         user = request.user

@@ -81,6 +81,12 @@ class UserTargetView(RetrieveUpdateAPIView):
                 "calorie_target": 2000,
                 "protein_target": 50,
                 "goal_weight": 70.0,
+                "carbs_target": None,
+                "fats_target": None,
+                "fibre_target": None,
+                "water_target": None,
+                "sleep_target": None,
+                "steps_target": None,
             },
         )
         return target

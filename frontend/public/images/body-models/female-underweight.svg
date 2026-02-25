@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400" fill="#64748b">
+  <title>Female - Underweight</title>
+  <circle cx="100" cy="38" r="26"/>
+  <rect x="92" y="64" width="16" height="18" rx="4"/>
+  <path d="M78 82 L72 150 L68 200 L85 210 L100 215 L115 210 L132 200 L128 150 L122 82 Z"/>
+  <path d="M78 82 L58 175 L65 178 L82 100 Z"/>
+  <path d="M122 82 L142 175 L135 178 L118 100 Z"/>
+  <path d="M82 210 L78 350 L93 350 L100 215 Z"/>
+  <path d="M118 210 L122 350 L107 350 L100 215 Z"/>
+  <rect x="73" y="350" width="25" height="10" rx="5"/>
+  <rect x="102" y="350" width="25" height="10" rx="5"/>
+</svg>

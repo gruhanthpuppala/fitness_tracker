@@ -121,6 +121,6 @@ class AuditLogAdmin(admin.ModelAdmin):
 class UserTargetAdmin(admin.ModelAdmin):
     """Admin configuration for user fitness targets."""
 
-    list_display = ("user", "calorie_target", "protein_target", "goal_weight")
+    list_display = ("user", "calorie_target", "protein_target", "goal_weight", "carbs_target", "fats_target")
     search_fields = ("user__email",)
     readonly_fields = ("created_at", "updated_at")
